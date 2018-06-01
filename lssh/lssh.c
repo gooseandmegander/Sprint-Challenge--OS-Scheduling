@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 
 #define PROMPT "lambda-shell$ "
 
@@ -114,14 +115,31 @@ int main(void)
         if (pid < 0)
         {
             printf("Fork Failed\n");
-            exit(1);
         }
         else if (pid == 0)
         {
-            printf("child: (pid: %d)\n", (int)getpid());
+            // check if user entered cd
+            if (strcmp(args[0], "cd") == 0)
+            {
+                // check if 2 arguments entered
+                if (args_count != 2)
+                {
+                    printf("Usage: cd [path]");
+                }
+                // run chdir() on second arg
+                chdir(args[1]);
+                // printf("out chdir: %d\n", chdir(args[1]));
+                // error check chdir() result, -1 fails
+                if (chdir(args[1]) == -1)
+                {
+                    perror("chdir");
+                }
+                // execute continue
+                continue;
+            }
             // run commandline args with exec()
-            execvp(*args, args);
-            if (execvp(*args, args) < 0)
+            execvp(args[0], args);
+            if (execvp(args[0], args) < 0)
             {
                 printf("*** ERROR: exec failed\n");
                 exit(1);
@@ -131,7 +149,6 @@ int main(void)
 
         // parent waits for child to complete
         wait(NULL);
-        printf("parent: (pid: %d)\n", (int)getpid());
     }
 
     return 0;
